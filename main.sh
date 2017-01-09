@@ -272,7 +272,6 @@ function deleteRecord {
 	esac
 	done
 	##############################################
-	echo "Delete Record Function " ;
 }
 function deleteChoices {
 	select del in 'Delete Table' 'Delete Record' 'Back'
@@ -296,36 +295,102 @@ function deleteChoices {
 		esac
 	done
 }
-select choice in 'Create Table' 'Insert New Record' 'Display' 'Delete' 'Exit'
-do
+function displayFullTable {
+	echo "Select Table to View From :" ;
+	noOfTables=`ls  tableinfo | wc -w ` ;
+	# Getting the existing tables into an array
+	for i in `seq 1 $noOfTables`
+	do
+		tables[$i]=`ls tableinfo | tr " " "\n" | tr "\n" ":" | cut -f$i -d:` ;
+		#echo "table element number $i is ${tables[i]}"
+	done
+	echo "number of tables is $noOfTables" ;
+	select choice in ${tables[@]} 'Back'
+	do
+	case $REPLY in
+	[`seq 1 $noOfTables`] )
 
-case $choice in
-'Create Table' )
-	clear;
-	createTable ;
-;;
-'Insert New Record' )
-	clear;
-	insert ;
-	echo "Press any key to continue..." ;
-;;
-'Display' )
-	clear;
-	echo "Displaying a table or record "
-	echo "Press any key to continue..." ;
-;;
-'Delete' )
-	clear;
-	deleteChoices ;
-	echo "Record Deleted Successfully ";
-	echo "Press any key to continue..." ;
-;;
-'Exit' )
-	echo "Bye!"
-	exit 0 ;
-;;
-* )
-	echo "invalid input! Please try again "
-;;
-esac
+			echo "Loading Table...";
+			cat tableinfo/$choice | cut -f1 -d: | tr '\n' ' ' | cat > tbl.tmp  ;
+			echo " " >> tbl.tmp;
+			cat tabledata/$choice | column -t | cat >> tbl.tmp;
+
+			sleep 3 ;
+			clear ;
+			cat tbl.tmp | column -t
+			sleep 1 ;
+			rm tbl.tmp ;
+			echo " " ;
+
+			echo "Press Any Key to continue.." ;
+			break;;
+		'Back' )
+				return 0 ;
+				;;
+		* )
+		echo "invalid input! Please try again "
+	;;
+	esac
+	done
+}
+function displayPartTable {
+	echo "display part table func" ;
+}
+function display {
+	select choice in 'Display Full Table ' 'Display Part of Table' 'Back'
+	do
+		case $choice in
+			'Display Full Table ' )
+				displayFullTable ;
+				read
+				return 0
+			;;
+			'Display Part of Table' )
+
+			;;
+			'Back' )
+				return 0 ;
+				;;
+		esac
+
+	done
+}
+while true
+	do
+		clear ;
+	select choice in 'Create Table' 'Insert New Record' 'Display' 'Delete' 'Exit'
+	do
+
+	case $choice in
+	'Create Table' )
+		clear;
+		createTable ;
+	;;
+	'Insert New Record' )
+		clear;
+		insert ;
+		break;
+		#echo "Press any key to continue..." ;
+	;;
+	'Display' )
+		clear;
+		display ;
+		break;
+	;;
+	'Delete' )
+		clear;
+		deleteChoices ;
+		echo "Record Deleted Successfully ";
+		echo "Press any key to continue..." ;
+		break;
+	;;
+	'Exit' )
+		echo "Bye!"
+		exit 0 ;
+	;;
+	* )
+		echo "invalid input! Please try again "
+	;;
+	esac
+	done
 done

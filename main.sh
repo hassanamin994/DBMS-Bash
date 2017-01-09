@@ -63,7 +63,7 @@ function insertData {
 	#echo "function insert data , parameter passed is $1 " ;
 	let noOfColumns=`cat tableinfo/$1 | wc -l`;
 	primaryKey=`cat tableinfo/$1 | cut -d: -f2 | cut -d$'\n' -f1` ;
-	echo "$primaryKey is primary key " ;
+	#echo "$primaryKey is primary key " ;
 	for i in `seq 2 $noOfColumns`
 	do
 		columnsNames[$i]=`cat tableinfo/$1 | cut -d: -f1 | cut -d$'\n' -f$i` ;
@@ -93,7 +93,7 @@ function insertData {
 		##############################################
 		if [ ${columnsNames[i]} == $primaryKey ]
 		then
-			echo "this is the primary key  validation ";
+			#echo "this is the primary key  validation ";
 			commandResult=`awk -v val="$primaryKeyValue" '{ if( $1 == val) print "true"  ; }' tabledata/$1`;
 			while [ $commandResult ]
 			do
@@ -103,7 +103,7 @@ function insertData {
 				commandResult=`awk -v val="$primaryKeyValue" '{ if( $1 == val) print "true"  ; }' tabledata/$1`;
 				echo $commandResult ;
 			done
-			echo " Primary key accepted ";
+			#echo " Primary key accepted ";
 		fi
 		# awk 'BEGIN{ keyExists=false }{ if( $1 == $primaryKeyValue) keyExists=true ;} END{ echo $keyExists} ' tabledata/hassan
 		###############################################
@@ -143,12 +143,12 @@ function insert {
 		#echo "table element number $i is ${tables[i]}"
 	done
 
-	echo "number of tables is $noOfTables" ;
+	#echo "number of tables is $noOfTables" ;
 	select choice in ${tables[@]} 'Back'
 	do
 	case $REPLY in
 	[`seq 1 $noOfTables`] )
-			echo " you entered $choice ";
+			#echo " you entered $choice ";
 			insertData $choice ;
 			echo "Press Any Key to continue.." ;
 		break;;
@@ -335,8 +335,125 @@ function displayFullTable {
 }
 function displayPartTable {
 	echo "display part table func" ;
+	echo "Select Table to View From: " ;
+	noOfTables=`ls  tableinfo | wc -w ` ;
+	#################################################
+	# Getting the existing tables into an array
+	#################################################
+	for i in `seq 1 $noOfTables`
+	do
+		tables[$i]=`ls tableinfo | tr " " "\n" | tr "\n" ":" | cut -f$i -d:` ;
+	done
+	#################################################
+	select choice in ${tables[@]} 'Back'
+	do
+	case $REPLY in
+	[`seq 1 $noOfTables`] )
+			clear;
+			select typeOfView in 'View Part of Table' 'View Record by Primary Key ' 'Back'
+			do
+				case $typeOfView in
+					'View Part of Table' )
+						clear;
+						#################################################
+						# Viewing Head or Tail for a Table
+						#################################################
+						select part in 'View Head' 'View Tail' 'Back'
+						do
+							case $part in
+								'View Head' )
+									echo "Please Enter the number of lines you want to view ";
+									read noOfLines;
+									echo "Loading Info...";
+									cat tableinfo/$choice | cut -f1 -d: | tr '\n' ' ' | cat > tbl.tmp  ;
+									echo " " >> tbl.tmp;
+									cat tabledata/$choice | column -t | cat >> tbl.tmp;
+
+									sleep 3 ;
+									clear ;
+									head -$noOfTables tbl.tmp | column -t
+									sleep 1 ;
+									rm tbl.tmp ;
+									echo " " ;
+									#head -$noOfLines
+									break ;;
+								'View Tail' )
+									echo "Please Enter the number of lines you want to view ";
+									read noOfLines;
+									echo "Loading Info...";
+									cat tableinfo/$choice | cut -f1 -d: | tr '\n' ' ' | cat > tbl.tmp  ;
+									echo " " >> tbl.tmp;
+									cat tabledata/$choice | column -t | cat >> tbl.tmp;
+
+									sleep 3 ;
+									clear ;
+									tail -$noOfTables tbl.tmp | column -t
+									sleep 1 ;
+									rm tbl.tmp ;
+									echo " " ;
+									#head -$noOfLines
+									break ;;
+								'Back' )
+									break;
+									;;
+									*)
+									echo "Invalid input, Please try Again" ;
+									;;
+								esac
+						done
+					break;;
+					#################################################
+
+					#################################################
+					# Viewing a record by its primary Key
+					#################################################
+					'View Record by Primary Key ' )
+						clear;
+						echo "Please enter Primary key for the record ";
+						read primaryKeyValue ;
+						commandResult=`awk -v val="$primaryKeyValue" '{ if( $1 == val) print "true"  ; }' tabledata/$choice`;
+						until [ $commandResult ]
+						do
+							echo "Primary Key Doesn't exist , Please try Again OR Type EXIT to Abort!";
+							read primaryKeyValue
+							if [ $primaryKeyValue == 'EXIT' -o $primaryKeyValue == 'exit' -o $primaryKeyValue == 'Exit' ]
+							then
+								break 2 ;
+							else
+								commandResult=`awk -v val="$primaryKeyValue" '{ if( $1 == val) print "true"  ; }' tabledata/$choice`;
+								#echo $commandResult ;
+							fi
+						done
+						commandResult=`awk -v val="$primaryKeyValue" '{ if( $1 == val) print $0  ; }' tabledata/$choice  `;
+						echo "The Record Data is :"
+						echo $commandResult ;
+					break;;
+					##################################################
+					'Back' )
+						clear;
+						break;
+					;;
+					*)
+					echo "Invalid input, Please try again" ;
+					;;
+				esac
+
+			done
+			echo "Press Any Key to continue.." ;
+		break;;
+		'Back' )
+			clear
+			return 0 ;
+			;;
+		* )
+			echo "invalid input! Please try again "
+			;;
+	esac
+	done
+
 }
 function display {
+	clear;
 	select choice in 'Display Full Table ' 'Display Part of Table' 'Back'
 	do
 		case $choice in
@@ -346,7 +463,9 @@ function display {
 				return 0
 			;;
 			'Display Part of Table' )
-
+				displayPartTable ;
+				read
+				return 0
 			;;
 			'Back' )
 				return 0 ;
@@ -365,6 +484,7 @@ while true
 	'Create Table' )
 		clear;
 		createTable ;
+		break;
 	;;
 	'Insert New Record' )
 		clear;

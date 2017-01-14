@@ -79,7 +79,6 @@ function insertData {
 		columnsNames[$i]=`cat $2/tableinfo/$1 | cut -d: -f1 | cut -d$'\n' -f$i` ;
 		columnsTypes[$i]=`cat $2/tableinfo/$1 | cut -d: -f2 | cut -d$'\n' -f$i` ;
 	done
-	echo ${columnsNames[@]};
 	for i in `seq 2 $noOfColumns`
 	do
 		##############################################
@@ -146,6 +145,7 @@ function insertData {
 function insert {
 	echo "Select Table to insert into " ;
 	noOfTables=`ls  $1/tableinfo | wc -w ` ;
+	let backBtn=$noOfTables+1 ;
 	# Getting the existing tables into an array
 	for i in `seq 1 $noOfTables`
 	do
@@ -160,9 +160,8 @@ function insert {
 	[`seq 1 $noOfTables`] )
 			#echo " you entered $choice ";
 			insertData $choice $1;
-			echo "Press Any Key to continue.." ;
 		break;;
-		'Back' )
+		$backBtn )
 				return 0 ;
 				;;
 		* )
@@ -381,15 +380,15 @@ function displayPartTable {
 								'View Head' )
 									echo "Please Enter the number of lines you want to view ";
 									read noOfLines;
-									echo "Loading Info...";
+									let noOfLines+=1;
+									echo "Loading Table...";
 									cat $1/tableinfo/$choice | cut -f1 -d: | tr '\n' ' ' | cat > tbl.tmp  ;
 									echo " " >> tbl.tmp;
 									cat $1/tabledata/$choice | column -t | cat >> tbl.tmp;
-
 									sleep 3 ;
 									clear ;
-									head -$noOfTables tbl.tmp | column -t
-									sleep 1 ;
+									head -$noOfLines tbl.tmp | column -t
+									sleep 2 ;
 									rm tbl.tmp ;
 									echo " " ;
 									break ;;
@@ -398,12 +397,14 @@ function displayPartTable {
 									read noOfLines;
 									echo "Loading Info...";
 									cat $1/tableinfo/$choice | cut -f1 -d: | tr '\n' ' ' | cat > tbl.tmp  ;
+									echo " CAT PERFORMED ";
 									echo " " >> tbl.tmp;
-									cat $1/tabledata/$choice | column -t | cat >> tbl.tmp;
-
+									sleep 1;
+									tail -$noOfLines $1/tabledata/$choice >> tbl.tmp;
 									sleep 3 ;
 									clear ;
-									tail -$noOfTables tbl.tmp | column -t
+
+									cat tbl.tmp | column -t
 									sleep 1 ;
 									rm tbl.tmp ;
 									echo " " ;
@@ -523,7 +524,6 @@ function operationslist {
 			'Delete' )
 				clear;
 				deleteChoices $1 ;
-				echo "Record Deleted Successfully ";
 				echo "Press any key to continue..." ;
 				read
 				break;
@@ -666,6 +666,7 @@ function deleteDatabase {
 	clear;
 	select choice in 'Use Database' 'Create Database' 'Delete Database' 'Exit'
 	do
+	clear;
 		case $choice in
 			'Use Database' )
 				clear;

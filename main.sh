@@ -397,7 +397,6 @@ function displayPartTable {
 									read noOfLines;
 									echo "Loading Info...";
 									cat $1/tableinfo/$choice | cut -f1 -d: | tr '\n' ' ' | cat > tbl.tmp  ;
-									echo " CAT PERFORMED ";
 									echo " " >> tbl.tmp;
 									sleep 1;
 									tail -$noOfLines $1/tabledata/$choice >> tbl.tmp;

@@ -1,4 +1,122 @@
 #!/bin/bash
+#################################################
+# Function that updates the record
+#################################################
+function updaterecord {
+
+#Retrieve and Select table
+unset 'columnsNames';
+unset 'columnsTypes' ;
+echo "Select Table to Update From " ;
+	noOfTables=`ls  $1/tableinfo | wc -w ` ;
+	let backBtn=$noOfTables+1 ;
+	# Getting the existing tables into an array
+	for i in `seq 1 $noOfTables`
+	do
+		tables[$i]=`ls $1/tableinfo | tr " " "\n" | tr "\n" ":" | cut -f$i -d:` ;
+		#echo "table element number $i is ${tables[i]}"
+	done
+
+	#echo "number of tables is $noOfTables" ;
+	select choice in ${tables[@]} 'Back'
+	do
+	case $REPLY in
+	[`seq 1 $noOfTables`] )
+
+			# loop
+
+			# Enter primary key and search
+			echo "Please enter Primary key for the record to be updated ";
+			read primaryKeyValue ;
+			commandResult=`awk -v val="$primaryKeyValue" '{ if( $1 == val) print "true"  ; }' $1/tabledata/$choice`;
+			until [ $commandResult ]
+			do
+				echo "Primary Key Doesn't exist , Please try Again OR Type EXIT to Abort!";
+				read primaryKeyValue
+				if [ $primaryKeyValue == 'EXIT' -o $primaryKeyValue == 'exit' -o $primaryKeyValue == 'Exit' ]
+				then
+					break 2 ;
+				else
+					commandResult=`awk -v val="$primaryKeyValue" '{ if( $1 == val) print "true"  ; }' $1/tabledata/$choice`;
+				fi
+			done
+			commandResult=`awk -v val="$primaryKeyValue" '{ if( $1 == val) print $0  ; }' $1/tabledata/$choice  `;
+			echo "The Current Record Data is :"
+			echo $commandResult ;
+			# Selecting column to edit
+			#########################################################################
+			let noOfColumns=`cat $1/tableinfo/$choice | wc -l`;
+			primaryKey=`cat $1/tableinfo/$choice | cut -d: -f2 | cut -d$'\n' -f1` ;
+			#echo "$primaryKey is primary key " ;
+			for i in `seq 2 $noOfColumns`
+			do
+				let j=$i-1 ;
+				columnsNames[$j]=`cat $1/tableinfo/$choice | cut -d: -f1 | cut -d$'\n' -f$i` ;
+				columnsTypes[$j]=`cat $1/tableinfo/$choice | cut -d: -f2 | cut -d$'\n' -f$i` ;
+			done
+			echo "Select Column to edit : " ;
+			select columnedit in ${columnsNames[@]}
+			do
+			case $REPLY in
+				[`seq 1 $noOfColumns`] )
+					let colIndex=$REPLY+1 ;
+					echo "Please enter new value for the Column : " ;
+					read newRecVal ;
+					###############################################
+					# Data Type Validation
+					##############################################
+					if [ "${columnsTypes[$REPLY]}" == "integer"  ] 2>/dev/null
+					then
+						until [ "$newRecVal" -eq "$newRecVal" ]   2>/dev/null
+			 		 	do
+			 				echo "Invalid datatype , please enter an integer" ;
+							read newRecVal ;
+			 		 	done
+					fi
+					echo "column found and validated " ;
+				################################################
+
+				################################################
+				# Updating the record
+				################################################
+
+
+				# getting the existing value for the column selected to be updated and generating
+				# the ouput string
+				let j=$REPLY+1 ;
+				columnCommandResult=`awk -v val="$primaryKeyValue" '{ if( $1 == val) print $0  ; }' $1/tabledata/$choice | cut -d' ' -f$j `;
+				echo " col commandResult is $columnCommandResult  and newrecval is $newRecVal"
+
+				outputString=`echo $commandResult | sed "s/$columnCommandResult/$newRecVal/g" `
+				# Delete the existing record
+				deleteCommand=`awk -v val="$primaryKeyValue" '{ if( $1 != val) print $0 ; }' $1/tabledata/$choice >> $1/tabledata/${choice}.tmp | sleep 2 | mv $1/tabledata/${choice}.tmp $1/tabledata/${choice}`;
+				sleep 1 ;
+				# Insert new record with the updated values
+				echo $outputString >> $1/tabledata/$choice ;
+				echo "Record was Updated Successfully as :"
+				echo $outputString ;
+
+				break 2 ;
+				;;
+				* )
+					echo "Invalid input , Please try again! " ;
+					;;
+				esac
+			done
+
+			#########################################################################
+		;;
+		$backBtn )
+				return 0 ;
+				;;
+		* )
+		echo "invalid input! Please try again "
+	;;
+	esac
+	done
+}
+
+
 ##################################################
 # Functions that creating tables
 ##################################################
@@ -495,7 +613,7 @@ function operationslist {
 	while true
 	do
 		clear;
-		select choice in 'Create Table' 'Insert New Record' 'Display' 'Delete' 'Back'
+		select choice in 'Create Table' 'Insert New Record' 'Display' 'Update' 'Delete' 'Back'
 		do
 			case $choice in
 			'Create Table' )
@@ -520,6 +638,12 @@ function operationslist {
 				read
 				break;
 			;;
+			'Update' )
+				updaterecord $1 ;
+
+			break;
+			;;
+
 			'Delete' )
 				clear;
 				deleteChoices $1 ;
